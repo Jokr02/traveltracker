@@ -95,7 +95,9 @@ model VisitPhoto {
   id        String   @id @default(cuid())
   visitId   String
   visit     Visit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
-  url       String
+  // Pfad im (privaten) Vercel-Blob-Store, kein direkt aufrufbarer öffentlicher
+  // Link — Auslieferung läuft über /api/photos/[...path], siehe dort.
+  pathname  String
   createdAt DateTime @default(now())
 
   @@index([visitId])

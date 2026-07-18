@@ -28,14 +28,16 @@ export async function uploadVisitPhoto(
   }
 
   const { put } = await import("@vercel/blob");
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
 
-  let blob: { url: string };
+  let pathname: string;
   try {
-    blob = await put(
-      `visits/${visitId}/${crypto.randomUUID()}-${file.name}`,
+    const blob = await put(
+      `visits/${visitId}/${crypto.randomUUID()}-${safeName}`,
       file,
-      { access: "public" },
+      { access: "private" },
     );
+    pathname = blob.pathname;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error("Blob upload failed:", error);
@@ -49,7 +51,7 @@ export async function uploadVisitPhoto(
   }
 
   await prisma.visitPhoto.create({
-    data: { visitId, url: blob.url },
+    data: { visitId, pathname },
   });
 
   revalidatePath(`/countries/${countryId}`);
@@ -62,7 +64,7 @@ export async function deleteVisitPhoto(photoId: string, countryId: string) {
   const photo = await prisma.visitPhoto.delete({ where: { id: photoId } });
 
   const { del } = await import("@vercel/blob");
-  await del(photo.url).catch(() => {});
+  await del(photo.pathname).catch(() => {});
 
   revalidatePath(`/countries/${countryId}`);
 }

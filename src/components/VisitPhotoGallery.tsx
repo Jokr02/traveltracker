@@ -4,7 +4,7 @@ import { useActionState, useEffect, useRef } from "react";
 import { ImagePlus, X } from "lucide-react";
 import { uploadVisitPhoto, deleteVisitPhoto } from "@/app/actions/photos";
 
-export type PhotoEntry = { id: string; url: string };
+export type PhotoEntry = { id: string; pathname: string };
 
 export function VisitPhotoGallery({
   visitId,
@@ -33,7 +33,7 @@ export function VisitPhotoGallery({
             <div key={p.id} className="group relative h-16 w-16 shrink-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={p.url}
+                src={`/api/photos/${p.pathname}`}
                 alt="Reise-Highlight"
                 className="h-16 w-16 rounded-lg object-cover"
               />

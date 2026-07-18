@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
           notizen: v.notes,
           transportmittel: v.transportModes.map((m) => TRANSPORT_LABELS[m]),
           reise: v.trip?.name ?? null,
-          fotos: v.photos.map((p) => p.url),
+          fotos: v.photos.map((p) => p.pathname),
         })),
       }));
 

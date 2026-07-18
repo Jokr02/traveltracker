@@ -46,25 +46,35 @@ für die lokale Entwicklung in diesem Projekt verwendet.
 | `SESSION_SECRET` | Zufälliger Secret-String zum Signieren der Session-Cookies (`openssl rand -base64 32`) |
 | `BLOB_READ_WRITE_TOKEN` | Nur für lokale Entwicklung nötig — siehe [Foto-Upload](#foto-upload-vercel-blob) |
 
-### Foto-Upload (Vercel Blob)
+### Foto-Upload (Vercel Blob, privater Store)
 
-Der Foto-Upload bei einem Besuch nutzt [Vercel Blob](https://vercel.com/docs/storage/vercel-blob).
-Ohne funktionierende Zugangsdaten bleibt die App voll nutzbar, der Upload zeigt nur
-eine Fehlermeldung an.
+Der Foto-Upload bei einem Besuch nutzt [Vercel Blob](https://vercel.com/docs/storage/vercel-blob)
+mit einem **privaten** Store (Zugriffsmodus lässt sich nach dem Anlegen nicht
+mehr ändern — bewusst so gewählt, damit Reisefotos nicht über eine erratbare
+öffentliche URL abrufbar sind). Ohne funktionierende Zugangsdaten bleibt die
+App voll nutzbar, der Upload zeigt nur eine Fehlermeldung an.
 
-**Auf Vercel (Production/Preview):** Neuere Blob-Stores authentifizieren sich per
-OIDC statt über einen statischen Token — die `@vercel/blob`-SDK erkennt das
-automatisch über die von Vercel injizierte OIDC-Identität kombiniert mit der
-Env-Var `BLOB_STORE_ID`. Es reicht also, den Store im Vercel-Dashboard unter
-*Storage* anzulegen und mit dem Projekt zu verbinden (Production + Preview) —
-**kein** `BLOB_READ_WRITE_TOKEN` nötig, kein manuelles Kopieren. Nach dem
-Verbinden einmal redeployen, damit die Functions die neue `BLOB_STORE_ID` sehen.
+Da private Blobs nicht direkt im Browser aufrufbar sind, gibt es dafür extra
+`src/app/api/photos/[...path]/route.ts`: die Route prüft unsere eigene
+App-Auth und liefert den Blob dann per `get(pathname, { access: 'private' })`
+authentifiziert aus ([Vercels empfohlenes Muster](https://vercel.com/docs/vercel-blob/private-storage#delivering-private-blobs)).
+`<img>`-Tags zeigen entsprechend auf `/api/photos/<pathname>`, nicht auf eine
+`vercel-storage.com`-URL. Gespeichert wird nur der Blob-*Pathname*
+(`VisitPhoto.pathname`), keine URL.
+
+**Auf Vercel (Production/Preview):** Store im Vercel-Dashboard unter *Storage*
+anlegen (Access: Private) und mit dem Projekt verbinden (Production +
+Preview) — die SDK authentifiziert sich dann automatisch per OIDC (Vercel-
+injizierte Identität + `BLOB_STORE_ID`), **kein** `BLOB_READ_WRITE_TOKEN`
+nötig. Nach dem Verbinden einmal redeployen.
 
 **Für lokale Entwicklung** gibt es keine automatische OIDC-Identität (die App
-läuft ja nicht auf Vercels Infrastruktur). Dafür brauchst du weiterhin einen
-klassischen Read-Write-Token: Vercel-Dashboard → Storage → Store → Tab
-"Tokens" (oder ".env.local") → Token erzeugen/kopieren → als
-`BLOB_READ_WRITE_TOKEN` in die lokale `.env` eintragen.
+läuft ja nicht auf Vercels Infrastruktur). Dafür brauchst du einen klassischen
+Read-Write-Token: beim Verbinden des Stores mit dem Projekt (oder nachträglich
+über "Configure" bei der Projekt-Verbindung) die Option "Add a read-write
+token env var to this connection" aktivieren → Wert aus den Environment
+Variables kopieren → als `BLOB_READ_WRITE_TOKEN` in die lokale `.env`
+eintragen.
 
 Bilder werden direkt server-seitig hochgeladen (Server Action), daher gilt das
 Vercel-Function-Body-Limit von 4.5 MB — die App validiert Dateien serverseitig auf

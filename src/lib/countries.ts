@@ -42,7 +42,12 @@ export async function getAllCountriesWithStatus(): Promise<
 export async function getCountryById(id: string) {
   const country = await prisma.country.findUnique({
     where: { id },
-    include: { visits: { orderBy: { startDate: "desc" } } },
+    include: {
+      visits: {
+        orderBy: { startDate: "desc" },
+        include: { trip: true, photos: { orderBy: { createdAt: "asc" } } },
+      },
+    },
   });
   if (!country) return null;
 

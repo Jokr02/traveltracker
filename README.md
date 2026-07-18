@@ -44,6 +44,25 @@ für die lokale Entwicklung in diesem Projekt verwendet.
 | `DATABASE_URL` | Postgres-Connection-String |
 | `APP_PASSWORD` | Passwort für den Single-User-Login |
 | `SESSION_SECRET` | Zufälliger Secret-String zum Signieren der Session-Cookies (`openssl rand -base64 32`) |
+| `BLOB_READ_WRITE_TOKEN` | Optional, für Foto-Upload — siehe [Foto-Upload](#foto-upload-vercel-blob) |
+
+### Foto-Upload (Vercel Blob)
+
+Der Foto-Upload bei einem Besuch nutzt [Vercel Blob](https://vercel.com/docs/storage/vercel-blob).
+Ohne konfigurierten Token bleibt die App voll nutzbar, der Upload zeigt nur eine
+Fehlermeldung an ("Foto-Upload ist nicht konfiguriert").
+
+So aktivierst du ihn:
+
+1. Im Vercel-Dashboard → Projekt → *Storage* → *Create* → *Blob* → Store erstellen.
+2. Der Store erzeugt automatisch eine `BLOB_READ_WRITE_TOKEN`-Env-Var im Projekt
+   (für Production **und** Preview verfügbar machen).
+3. Für lokale Entwicklung: den Token aus dem Vercel-Dashboard (Storage → Store →
+   `.env.local` Tab) in deine lokale `.env` kopieren.
+
+Bilder werden direkt server-seitig hochgeladen (Server Action), daher gilt das
+Vercel-Function-Body-Limit von 4.5 MB — die App validiert Dateien serverseitig auf
+max. 4 MB.
 
 ## Deployment auf Vercel
 
@@ -80,8 +99,24 @@ selbst sinnvoll entscheiden"). Getroffene Entscheidungen:
 - **Sprache:** UI sowie Länder-/Kontinentnamen sind auf Deutsch (aus den
   `world-countries`-Übersetzungen), passend zum Rest des Prompts.
 - **Nice-to-haves:** Umgesetzt wurden Achievements/Badges (inkl. der drei im Prompt
-  genannten Beispiele), die Jahres-Heatmap und Nachbarland-Vorschläge. "Personal Travel
-  Score" und "On this day" wurden ausgelassen, um den Umfang nicht ausufern zu lassen.
+  genannten Beispiele), die Jahres-Heatmap, Nachbarland-Vorschläge und der Personal
+  Travel Score (siehe unten). "On this day" wurde ausgelassen, um den Umfang nicht
+  ausufern zu lassen.
+- **Travel Score:** 10 Basispunkte pro besuchtem Land + Seltenheits-Bonus (0–50,
+  kleinere Landfläche = höherer Bonus, relativ zu allen 250 Ländern) + optionaler
+  Distanz-Bonus (0–50, 1 Punkt/200 km Luftlinie ab einem in `/settings` wählbaren
+  Heimatland). Bewusst simpel & transparent gehalten (`src/lib/travelScore.ts`), da
+  es keine verlässliche "Besucherzahlen pro Land"-Datenquelle gibt, um echte
+  Seltenheit zu berechnen.
+- **Trip-Gruppierung:** Ein `Trip` kann mehrere `Visit`-Einträge bündeln (z.B.
+  "Skandinavien 2023" → Norwegen, Schweden, Dänemark). Wird auf der Karte als
+  gestrichelte Route zwischen den Ländermittelpunkten dargestellt.
+- **Sprache/Währung:** Aus `world-countries` übernommen, Anzeigenamen wo möglich per
+  `Intl.DisplayNames(["de"])` eingedeutscht (z.B. ISO-Sprachcode `deu` → "Deutsch"),
+  mit Fallback auf den englischen Originalnamen bei den paar Codes, die die
+  ICU-Daten nicht kennen (v.a. sehr kleine Regionalsprachen/-währungen).
+- **Datenexport:** JSON (verschachtelt, mit Fotos/Reise/Transportmitteln) und CSV
+  (eine Zeile pro Besuch) unter `/settings`, via `/api/export?format=json|csv`.
 
 ## Datenbank
 
@@ -90,6 +125,19 @@ Prisma 7 nutzt für Postgres einen Driver-Adapter (`@prisma/adapter-pg`) statt e
 `src/lib/prisma.ts` bzw. für die CLI in `prisma.config.ts` aus `DATABASE_URL` gelesen.
 Der generierte Client liegt (bewusst nicht committed, siehe `.gitignore`) unter
 `src/generated/prisma` und wird bei jedem `npm install` neu erzeugt.
+
+### Bekannte Falle: kein `Promise.all` mit mehreren Prisma-Queries
+
+In Server Components **niemals zwei oder mehr Prisma-Aufrufe parallel per
+`Promise.all` starten** — z.B. `Promise.all([getStats(), getTravelScore()])`.
+Das hat beim Testen dieses Setups (Prisma 7 + `@prisma/adapter-pg` + `pg` gegen
+den lokalen `prisma dev`-Server) zuverlässig eine Race Condition ausgelöst
+("bind message supplies N parameters, but prepared statement "" requires 0"),
+die zufällig ~50% der Requests mit einem 500er hat scheitern lassen. Alle
+Datenabfragen in den Pages dieses Projekts sind deshalb bewusst sequenziell
+(mehrere einzelne `await`s statt `Promise.all`). Falls du neue Pages/Actions
+schreibst, die mehrere Prisma-Queries brauchen: sequenziell `await`en, nicht
+parallelisieren — auch wenn es unintuitiv verschenkte Performance aussieht.
 
 ## Scripts
 

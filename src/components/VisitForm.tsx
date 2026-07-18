@@ -2,7 +2,9 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { StarRatingInput } from "@/components/StarRatingInput";
+import { TransportModePicker } from "@/components/TransportModePicker";
 import type { VisitFormState } from "@/app/actions/visits";
+import type { TransportMode } from "@/generated/prisma/client";
 
 const inputClass =
   "rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-50";
@@ -13,6 +15,8 @@ type Defaults = {
   notes?: string;
   rating?: number | null;
   coverImageUrl?: string;
+  transportModes?: TransportMode[];
+  tripId?: string | null;
 };
 
 export function VisitForm({
@@ -21,6 +25,7 @@ export function VisitForm({
   submitLabel = "Speichern",
   onCancel,
   onSuccess,
+  trips = [],
 }: {
   action: (
     prevState: VisitFormState,
@@ -30,6 +35,7 @@ export function VisitForm({
   submitLabel?: string;
   onCancel?: () => void;
   onSuccess?: () => void;
+  trips?: { id: string; name: string }[];
 }) {
   const [state, formAction, pending] = useActionState(action, undefined);
   const submittedRef = useRef(false);
@@ -100,6 +106,40 @@ export function VisitForm({
         </label>
         <StarRatingInput name="rating" defaultValue={defaults?.rating} />
       </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+          Transportmittel
+        </label>
+        <TransportModePicker
+          name="transportModes"
+          defaultValue={defaults?.transportModes}
+        />
+      </div>
+
+      {trips.length > 0 && (
+        <div className="flex flex-col gap-1">
+          <label
+            htmlFor="tripId"
+            className="text-xs font-medium text-zinc-600 dark:text-zinc-400"
+          >
+            Reise (optional)
+          </label>
+          <select
+            id="tripId"
+            name="tripId"
+            defaultValue={defaults?.tripId ?? ""}
+            className={inputClass}
+          >
+            <option value="">Keine Reise zugeordnet</option>
+            {trips.map((trip) => (
+              <option key={trip.id} value={trip.id}>
+                {trip.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex flex-col gap-1">
         <label

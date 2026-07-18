@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/session";
 import { visitFormSchema } from "@/lib/validation";
+import type { TransportMode } from "@/generated/prisma/client";
 
 export type VisitFormState = { error?: string; fieldErrors?: Record<string, string> } | undefined;
 
@@ -14,6 +15,8 @@ function parseVisitForm(formData: FormData) {
     notes: String(formData.get("notes") ?? ""),
     rating: String(formData.get("rating") ?? ""),
     coverImageUrl: String(formData.get("coverImageUrl") ?? ""),
+    transportModes: formData.getAll("transportModes").map(String),
+    tripId: String(formData.get("tripId") ?? ""),
   };
   return visitFormSchema.safeParse(raw);
 }
@@ -22,6 +25,7 @@ function revalidateCountryViews(countryId: string) {
   revalidatePath(`/countries/${countryId}`);
   revalidatePath("/countries");
   revalidatePath("/stats");
+  revalidatePath("/trips");
   revalidatePath("/");
 }
 
@@ -45,7 +49,8 @@ export async function createVisit(
     };
   }
 
-  const { startDate, endDate, notes, rating, coverImageUrl } = parsed.data;
+  const { startDate, endDate, notes, rating, coverImageUrl, transportModes, tripId } =
+    parsed.data;
 
   await prisma.visit.create({
     data: {
@@ -55,6 +60,8 @@ export async function createVisit(
       notes: notes ?? null,
       rating: rating ?? null,
       coverImageUrl: coverImageUrl ?? null,
+      transportModes: transportModes as TransportMode[],
+      tripId: tripId ?? null,
     },
   });
 
@@ -83,7 +90,8 @@ export async function updateVisit(
     };
   }
 
-  const { startDate, endDate, notes, rating, coverImageUrl } = parsed.data;
+  const { startDate, endDate, notes, rating, coverImageUrl, transportModes, tripId } =
+    parsed.data;
 
   await prisma.visit.update({
     where: { id: visitId },
@@ -93,6 +101,8 @@ export async function updateVisit(
       notes: notes ?? null,
       rating: rating ?? null,
       coverImageUrl: coverImageUrl ?? null,
+      transportModes: transportModes as TransportMode[],
+      tripId: tripId ?? null,
     },
   });
 

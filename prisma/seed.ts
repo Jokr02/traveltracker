@@ -41,41 +41,72 @@ const SUBREGION_DE: Record<string, string> = {
   "Western Europe": "Westeuropa",
 };
 
+const languageDisplay = new Intl.DisplayNames(["de"], { type: "language" });
+const currencyDisplay = new Intl.DisplayNames(["de"], { type: "currency" });
+
+function languageNameDe(code: string, fallback: string) {
+  try {
+    const name = languageDisplay.of(code);
+    return name && name !== code ? name : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function currencyNameDe(code: string, fallback: string) {
+  try {
+    const name = currencyDisplay.of(code);
+    return name && name !== code ? name : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 async function main() {
   for (const c of countries) {
     const [latitude, longitude] = c.latlng ?? [0, 0];
     const name = c.translations.deu?.common ?? c.name.common;
     const continent = CONTINENT_DE[c.region] ?? c.region;
+    const subregion = c.subregion
+      ? (SUBREGION_DE[c.subregion] ?? c.subregion)
+      : null;
+
+    const languages = Object.entries(c.languages ?? {}).map(([code, en]) =>
+      languageNameDe(code, en),
+    );
+    const currencies = Object.entries(c.currencies ?? {}).map(
+      ([code, cur]) => currencyNameDe(code, cur.name),
+    );
+
+    const data = {
+      name,
+      continent,
+      subregion,
+      latitude,
+      longitude,
+      areaKm2: c.area ?? null,
+      flagEmoji: c.flag ?? null,
+      ccn3: c.ccn3 ?? null,
+      borders: c.borders ?? [],
+      languages,
+      currencies,
+    };
 
     await prisma.country.upsert({
       where: { cca3: c.cca3 },
-      update: {
-        name,
-        continent,
-        subregion: c.subregion ? (SUBREGION_DE[c.subregion] ?? c.subregion) : null,
-        latitude,
-        longitude,
-        areaKm2: c.area ?? null,
-        flagEmoji: c.flag ?? null,
-        ccn3: c.ccn3 ?? null,
-        borders: c.borders ?? [],
-      },
-      create: {
-        cca3: c.cca3,
-        ccn3: c.ccn3 ?? null,
-        name,
-        continent,
-        subregion: c.subregion ? (SUBREGION_DE[c.subregion] ?? c.subregion) : null,
-        latitude,
-        longitude,
-        areaKm2: c.area ?? null,
-        flagEmoji: c.flag ?? null,
-        borders: c.borders ?? [],
-      },
+      update: data,
+      create: { cca3: c.cca3, ...data },
     });
   }
 
   console.log(`Seeded ${countries.length} countries.`);
+
+  await prisma.setting.upsert({
+    where: { id: "singleton" },
+    update: {},
+    create: { id: "singleton" },
+  });
+  console.log("Ensured singleton Setting row exists.");
 }
 
 main()

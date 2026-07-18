@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { TransportMode } from "@/generated/prisma/client";
+
+const transportModeValues = Object.values(TransportMode) as [string, ...string[]];
 
 export const visitFormSchema = z
   .object({
@@ -18,6 +21,11 @@ export const visitFormSchema = z
       .transform((v) => (v === "" || v === undefined ? undefined : v)),
     coverImageUrl: z
       .union([z.url({ error: "Bitte eine gültige URL angeben." }), z.literal("")])
+      .optional()
+      .transform((v) => (v ? v : undefined)),
+    transportModes: z.array(z.enum(transportModeValues)).optional().default([]),
+    tripId: z
+      .union([z.string(), z.literal("")])
       .optional()
       .transform((v) => (v ? v : undefined)),
   })

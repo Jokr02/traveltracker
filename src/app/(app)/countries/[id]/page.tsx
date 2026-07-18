@@ -1,8 +1,9 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { clsx } from "clsx";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Languages, Coins } from "lucide-react";
 import { getCountryById, type CountryStatus } from "@/lib/countries";
+import { getAllTrips } from "@/lib/trips";
 import { VisitList } from "@/components/VisitList";
 import { PlanningStatusControl } from "@/components/PlanningStatusControl";
 
@@ -26,7 +27,10 @@ export default async function CountryDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  // Sequenziell statt Promise.all: gleichzeitige Prisma-Queries über den
+  // pg-Adapter haben sich lokal als Race Condition erwiesen (siehe README).
   const country = await getCountryById(id);
+  const trips = await getAllTrips();
   if (!country) notFound();
 
   return (
@@ -56,6 +60,22 @@ export default async function CountryDetailPage({
               {STATUS_LABEL[country.status]}
             </span>
           </div>
+          {(country.languages.length > 0 || country.currencies.length > 0) && (
+            <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500 dark:text-zinc-400">
+              {country.languages.length > 0 && (
+                <span className="flex items-center gap-1.5">
+                  <Languages className="h-3.5 w-3.5" />
+                  {country.languages.join(", ")}
+                </span>
+              )}
+              {country.currencies.length > 0 && (
+                <span className="flex items-center gap-1.5">
+                  <Coins className="h-3.5 w-3.5" />
+                  {country.currencies.join(", ")}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -75,7 +95,11 @@ export default async function CountryDetailPage({
         <h2 className="mb-3 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
           Besuche
         </h2>
-        <VisitList countryId={country.id} visits={country.visits} />
+        <VisitList
+          countryId={country.id}
+          visits={country.visits}
+          trips={trips.map((t) => ({ id: t.id, name: t.name }))}
+        />
       </div>
 
       {country.neighbors.length > 0 && (

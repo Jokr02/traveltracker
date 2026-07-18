@@ -1,17 +1,28 @@
 import Link from "next/link";
 import { getAllCountriesWithStatus } from "@/lib/countries";
 import { getStats } from "@/lib/stats";
+import { getAllTrips } from "@/lib/trips";
 import { WorldMap } from "@/components/WorldMap";
 import { StatTile } from "@/components/StatTile";
 import { ArrowRight, Globe2, Map as MapIcon, Route, Trophy } from "lucide-react";
 
 export default async function DashboardPage() {
-  const [countries, stats] = await Promise.all([
-    getAllCountriesWithStatus(),
-    getStats(),
-  ]);
+  // Sequenziell statt Promise.all: gleichzeitige Prisma-Queries über den
+  // pg-Adapter haben sich lokal als Race Condition erwiesen (siehe README).
+  const countries = await getAllCountriesWithStatus();
+  const stats = await getStats();
+  const trips = await getAllTrips();
 
   const unlockedAchievements = stats.achievements.filter((a) => a.unlocked);
+  const mapTrips = trips
+    .filter((t) => t.visits.length > 1)
+    .map((t) => ({
+      id: t.id,
+      stops: t.visits.map((v) => ({
+        longitude: v.country.longitude,
+        latitude: v.country.latitude,
+      })),
+    }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -59,6 +70,7 @@ export default async function DashboardPage() {
           status: c.status,
           visitCount: c.visitCount,
         }))}
+        trips={mapTrips}
       />
 
       <div className="grid gap-4 md:grid-cols-2">

@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { clsx } from "clsx";
-import { Globe2, LayoutDashboard, List, LogOut, BarChart3 } from "lucide-react";
+import { Globe2, LayoutDashboard, List, LogOut, BarChart3, Luggage, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { logout } from "@/app/actions/auth";
 
 const NAV_ITEMS = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard },
   { href: "/countries", label: "Länder", icon: List },
+  { href: "/trips", label: "Reisen", icon: Luggage },
   { href: "/stats", label: "Statistik", icon: BarChart3 },
 ];
 
@@ -51,6 +52,18 @@ export function NavBar() {
           </nav>
 
           <div className="flex items-center gap-1">
+            <Link
+              href="/settings"
+              aria-label="Einstellungen"
+              className={clsx(
+                "flex h-9 w-9 items-center justify-center rounded-lg transition-colors hover:bg-zinc-100 hover:text-zinc-900 dark:hover:bg-zinc-800 dark:hover:text-zinc-50",
+                isActive(pathname, "/settings")
+                  ? "text-teal-700 dark:text-teal-300"
+                  : "text-zinc-500 dark:text-zinc-400",
+              )}
+            >
+              <Settings className="h-[18px] w-[18px]" />
+            </Link>
             <ThemeToggle />
             <form action={logout}>
               <button

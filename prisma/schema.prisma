@@ -18,6 +18,15 @@ enum PlanningStatus {
   PLANNED
 }
 
+enum TransportMode {
+  PLANE
+  CAR
+  TRAIN
+  BUS
+  FERRY
+  OTHER
+}
+
 model Country {
   id             String         @id @default(cuid())
   cca3           String         @unique
@@ -30,9 +39,12 @@ model Country {
   areaKm2        Float?
   flagEmoji      String?
   borders        String[]
+  languages      String[]
+  currencies     String[]
   planningStatus PlanningStatus @default(NONE)
 
-  visits Visit[]
+  visits           Visit[]
+  homeForSettings  Setting[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -40,18 +52,53 @@ model Country {
   @@index([continent])
 }
 
+model Trip {
+  id        String   @id @default(cuid())
+  name      String
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  visits Visit[]
+}
+
 model Visit {
-  id            String    @id @default(cuid())
-  countryId     String
-  country       Country   @relation(fields: [countryId], references: [id], onDelete: Cascade)
-  startDate     DateTime
-  endDate       DateTime?
-  notes         String?
-  rating        Int?
-  coverImageUrl String?
+  id             String          @id @default(cuid())
+  countryId      String
+  country        Country         @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  tripId         String?
+  trip           Trip?           @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  startDate      DateTime
+  endDate        DateTime?
+  notes          String?
+  rating         Int?
+  coverImageUrl  String?
+  transportModes TransportMode[]
+
+  photos VisitPhoto[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([countryId])
+  @@index([tripId])
+}
+
+model VisitPhoto {
+  id        String   @id @default(cuid())
+  visitId   String
+  visit     Visit    @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  url       String
+  createdAt DateTime @default(now())
+
+  @@index([visitId])
+}
+
+// Singleton-Tabelle (eine Zeile, id = "singleton") für App-weite Einstellungen
+// eines Single-User-Setups.
+model Setting {
+  id            String   @id @default("singleton")
+  homeCountryId String?
+  homeCountry   Country? @relation(fields: [homeCountryId], references: [id], onDelete: SetNull)
+  updatedAt     DateTime @updatedAt
 }

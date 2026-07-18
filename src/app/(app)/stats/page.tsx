@@ -1,13 +1,16 @@
 import { getStats } from "@/lib/stats";
+import { getTravelScore } from "@/lib/travelScore";
 import { StatTile } from "@/components/StatTile";
 import { ContinentBarChart } from "@/components/ContinentBarChart";
 import { YearHeatmap } from "@/components/YearHeatmap";
 import { VisitTimeline } from "@/components/VisitTimeline";
 import { AchievementsGrid } from "@/components/AchievementsGrid";
+import { TravelScoreCard } from "@/components/TravelScoreCard";
 import { Globe2, Map as MapIcon, Route, Trophy } from "lucide-react";
 
 export default async function StatsPage() {
   const stats = await getStats();
+  const score = await getTravelScore();
   const unlockedCount = stats.achievements.filter((a) => a.unlocked).length;
 
   return (
@@ -47,6 +50,13 @@ export default async function StatsPage() {
           hint={`von ${stats.achievements.length}`}
         />
       </div>
+
+      <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+        <h2 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          Travel Score
+        </h2>
+        <TravelScoreCard score={score} />
+      </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
         <h2 className="mb-4 text-sm font-semibold text-zinc-900 dark:text-zinc-50">

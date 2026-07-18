@@ -1,10 +1,22 @@
 "use client";
 
 import { useState } from "react";
-import { Star, Pencil, Trash2, Plus } from "lucide-react";
+import { Star, Pencil, Trash2, Plus, Plane, Car, TrainFront, Bus, Ship, MoreHorizontal, Luggage } from "lucide-react";
 import { clsx } from "clsx";
 import { VisitForm } from "@/components/VisitForm";
+import { VisitPhotoGallery, type PhotoEntry } from "@/components/VisitPhotoGallery";
 import { createVisit, updateVisit, deleteVisit } from "@/app/actions/visits";
+import { TRANSPORT_LABELS } from "@/lib/transport";
+import type { TransportMode } from "@/generated/prisma/client";
+
+const TRANSPORT_ICONS: Record<TransportMode, typeof Plane> = {
+  PLANE: Plane,
+  CAR: Car,
+  TRAIN: TrainFront,
+  BUS: Bus,
+  FERRY: Ship,
+  OTHER: MoreHorizontal,
+};
 
 export type VisitEntry = {
   id: string;
@@ -13,6 +25,10 @@ export type VisitEntry = {
   notes: string | null;
   rating: number | null;
   coverImageUrl: string | null;
+  transportModes: TransportMode[];
+  tripId: string | null;
+  trip: { id: string; name: string } | null;
+  photos: PhotoEntry[];
 };
 
 const dateFormatter = new Intl.DateTimeFormat("de-DE", {
@@ -28,9 +44,11 @@ function toInputDate(date: Date) {
 export function VisitList({
   countryId,
   visits,
+  trips = [],
 }: {
   countryId: string;
   visits: VisitEntry[];
+  trips?: { id: string; name: string }[];
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -62,12 +80,15 @@ export function VisitList({
           >
             <VisitForm
               action={updateVisit.bind(null, v.id, countryId)}
+              trips={trips}
               defaults={{
                 startDate: toInputDate(v.startDate),
                 endDate: v.endDate ? toInputDate(v.endDate) : undefined,
                 notes: v.notes ?? undefined,
                 rating: v.rating,
                 coverImageUrl: v.coverImageUrl ?? undefined,
+                transportModes: v.transportModes,
+                tripId: v.tripId,
               }}
               submitLabel="Änderungen speichern"
               onCancel={() => setEditingId(null)}
@@ -77,61 +98,87 @@ export function VisitList({
         ) : (
           <div
             key={v.id}
-            className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
+            className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900"
           >
-            {v.coverImageUrl && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={v.coverImageUrl}
-                alt=""
-                className="h-16 w-16 shrink-0 rounded-lg object-cover"
-              />
-            )}
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
-                  {dateFormatter.format(v.startDate)}
-                  {v.endDate && ` – ${dateFormatter.format(v.endDate)}`}
-                </span>
-                {v.rating && (
-                  <span className="flex items-center gap-0.5">
-                    {Array.from({ length: v.rating }).map((_, i) => (
-                      <Star
-                        key={i}
-                        className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
-                      />
-                    ))}
+            <div className="flex items-start gap-3">
+              {v.coverImageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={v.coverImageUrl}
+                  alt=""
+                  className="h-16 w-16 shrink-0 rounded-lg object-cover"
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-medium text-zinc-900 dark:text-zinc-50">
+                    {dateFormatter.format(v.startDate)}
+                    {v.endDate && ` – ${dateFormatter.format(v.endDate)}`}
                   </span>
+                  {v.rating && (
+                    <span className="flex items-center gap-0.5">
+                      {Array.from({ length: v.rating }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className="h-3.5 w-3.5 fill-amber-400 text-amber-400"
+                        />
+                      ))}
+                    </span>
+                  )}
+                  {v.trip && (
+                    <span className="flex items-center gap-1 rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-700 dark:bg-teal-900/30 dark:text-teal-300">
+                      <Luggage className="h-3 w-3" />
+                      {v.trip.name}
+                    </span>
+                  )}
+                  {v.transportModes.map((mode) => {
+                    const Icon = TRANSPORT_ICONS[mode];
+                    return (
+                      <span
+                        key={mode}
+                        title={TRANSPORT_LABELS[mode]}
+                        className="flex items-center gap-1 rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400"
+                      >
+                        <Icon className="h-3 w-3" />
+                      </span>
+                    );
+                  })}
+                </div>
+                {v.notes && (
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-600 dark:text-zinc-400">
+                    {v.notes}
+                  </p>
                 )}
               </div>
-              {v.notes && (
-                <p className="mt-1 whitespace-pre-wrap text-sm text-zinc-600 dark:text-zinc-400">
-                  {v.notes}
-                </p>
-              )}
+              <div className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setEditingId(v.id)}
+                  aria-label="Bearbeiten"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+                >
+                  <Pencil className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(v.id)}
+                  disabled={deletingId === v.id}
+                  aria-label="Löschen"
+                  className={clsx(
+                    "flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-900/20 dark:hover:text-red-400",
+                    deletingId === v.id && "opacity-50",
+                  )}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
             </div>
-            <div className="flex shrink-0 gap-1">
-              <button
-                type="button"
-                onClick={() => setEditingId(v.id)}
-                aria-label="Bearbeiten"
-                className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
-              >
-                <Pencil className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(v.id)}
-                disabled={deletingId === v.id}
-                aria-label="Löschen"
-                className={clsx(
-                  "flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-900/20 dark:hover:text-red-400",
-                  deletingId === v.id && "opacity-50",
-                )}
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
+
+            <VisitPhotoGallery
+              visitId={v.id}
+              countryId={countryId}
+              photos={v.photos}
+            />
           </div>
         ),
       )}
@@ -140,6 +187,7 @@ export function VisitList({
         <div className="rounded-xl border border-teal-200 bg-teal-50/40 p-4 dark:border-teal-900 dark:bg-teal-900/10">
           <VisitForm
             action={createVisit.bind(null, countryId)}
+            trips={trips}
             submitLabel="Besuch hinzufügen"
             onCancel={() => setAdding(false)}
             onSuccess={() => setAdding(false)}

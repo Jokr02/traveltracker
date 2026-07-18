@@ -6,6 +6,7 @@ import {
   ComposableMap,
   Geographies,
   Geography,
+  Line,
   ZoomableGroup,
 } from "react-simple-maps";
 import { Minus, Plus, RotateCcw } from "lucide-react";
@@ -43,7 +44,18 @@ type TooltipState = {
   visitCount: number;
 } | null;
 
-export function WorldMap({ countries }: { countries: MapCountry[] }) {
+export type MapTrip = {
+  id: string;
+  stops: { longitude: number; latitude: number }[];
+};
+
+export function WorldMap({
+  countries,
+  trips = [],
+}: {
+  countries: MapCountry[];
+  trips?: MapTrip[];
+}) {
   const router = useRouter();
   const [zoom, setZoom] = useState(1);
   const [center, setCenter] = useState<[number, number]>([10, 20]);
@@ -143,6 +155,24 @@ export function WorldMap({ countries }: { countries: MapCountry[] }) {
               })
             }
           </Geographies>
+
+          {trips.flatMap((trip) =>
+            trip.stops.slice(1).map((stop, i) => {
+              const from = trip.stops[i];
+              return (
+                <Line
+                  key={`${trip.id}-${i}`}
+                  from={[from.longitude, from.latitude]}
+                  to={[stop.longitude, stop.latitude]}
+                  stroke="var(--text-secondary)"
+                  strokeWidth={1}
+                  strokeDasharray="3 3"
+                  strokeLinecap="round"
+                  fill="none"
+                />
+              );
+            }),
+          )}
         </ZoomableGroup>
       </ComposableMap>
 

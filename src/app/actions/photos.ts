@@ -38,13 +38,14 @@ export async function uploadVisitPhoto(
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    console.error("Blob upload failed:", error);
     if (/credentials|token|BLOB_STORE_ID/i.test(message)) {
       return {
         error:
           "Foto-Upload ist nicht konfiguriert. Vercel Blob Store mit dem Projekt verbinden (siehe README).",
       };
     }
-    return { error: "Foto-Upload fehlgeschlagen. Bitte erneut versuchen." };
+    return { error: `Foto-Upload fehlgeschlagen: ${message}` };
   }
 
   await prisma.visitPhoto.create({

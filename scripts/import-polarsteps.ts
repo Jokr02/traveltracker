@@ -50,9 +50,9 @@ async function main() {
         `Reise "${result.tripName}" wurde bereits importiert (Trip-ID ${result.tripId}). Übersprungen.`,
       );
       break;
-    case "route_updated":
+    case "updated":
       console.log(
-        `Reise "${result.tripName}" war schon importiert — Routendaten wurden ergänzt (Trip-ID ${result.tripId}).`,
+        `Reise "${result.tripName}" war schon importiert — fehlende Route/Distanz wurden ergänzt (Trip-ID ${result.tripId}).`,
       );
       break;
     case "no_location_data":

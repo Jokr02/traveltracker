@@ -13,6 +13,7 @@ mit mehreren Besuchen pro Land, Statistik-Dashboard mit Achievements. Gebaut nac
 - **recharts** für die Statistik-Charts
 - **jose** für signierte Session-Cookies (Passwortschutz)
 - **world-countries** als Datenquelle für alle 250 Länder (inkl. deutscher Übersetzungen)
+- **@vercel/analytics** für Web Analytics (Page Views, keine Cookies)
 
 ## Setup
 
@@ -92,6 +93,9 @@ max. 4 MB.
    ```
    (lokal mit der Produktions-`DATABASE_URL`, oder via `vercel env pull`).
 5. Push auf den verbundenen Branch löst den Build/Deploy aus.
+6. **Web Analytics aktivieren:** Vercel-Projekt → Tab *Analytics* → *Enable*.
+   Die `<Analytics />`-Komponente ist im Code schon eingebunden, sammelt aber
+   erst Daten, wenn Analytics für das Projekt im Dashboard aktiviert ist.
 
 ## Architektur-Entscheidungen
 
@@ -101,6 +105,13 @@ selbst sinnvoll entscheiden"). Getroffene Entscheidungen:
 - **Auth:** Single-User-Passwortschutz per signiertem Cookie (`src/proxy.ts`, ehemals
   "Middleware" — in Next.js 16 umbenannt). Kein Multi-Tenant-Unterbau, da explizit
   nicht gefordert und für ein persönliches Projekt unnötige Komplexität.
+- **Login-Rate-Limiting:** Max. 5 Fehlversuche pro IP innerhalb von 15 Minuten
+  (`LoginAttempt`-Tabelle, geprüft in `src/app/actions/auth.ts`), danach
+  Sperre unabhängig davon, ob das nächste Passwort stimmen würde. Bewusst als
+  DB-Tabelle statt In-Memory-Zähler, da Vercels Serverless Functions keinen
+  gemeinsamen, zuverlässigen Prozessspeicher über mehrere Invocations/Instanzen
+  haben. Kein Cronjob zum Aufräumen nötig — alte Einträge (>24h) werden
+  opportunistisch bei jedem fehlgeschlagenen Login mitgelöscht.
 - **Fotos:** Nur externe Bild-URLs (`coverImageUrl`), kein Upload. Vercel Blob Storage
   lässt sich später einfach ergänzen, falls gewünscht.
 - **CSV-Import:** Nicht implementiert — die App wird beim Setup bereits mit allen 250
@@ -220,3 +231,9 @@ Ist `locations.json` vorhanden, wird die dichte GPS-Spur (auf max. 3000 Punkte
 downgesampelt) in `Trip.route` gespeichert und auf der Dashboard-Karte als
 tatsächlich gefahrene Route gezeichnet statt der sonst üblichen geraden Linie
 zwischen den Länder-Mittelpunkten.
+
+Polarsteps liefert außerdem `total_km` (die tatsächlich gefahrene/geflogene
+Distanz, nicht Luftlinie) — landet in `Trip.distanceKm` und wird auf `/trips`
+als "X km zurückgelegt" angezeigt. Bei manuell angelegten Reisen (oder wenn
+`total_km` fehlt) zeigt die Karte stattdessen die aus den Länder-Mittelpunkten
+geschätzte Luftlinien-Distanz, klar als "(geschätzt)" gekennzeichnet.

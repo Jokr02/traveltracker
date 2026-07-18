@@ -12,6 +12,7 @@ export type TripEntry = {
   name: string;
   notes: string | null;
   route: unknown;
+  distanceKm: number | null;
   visits: {
     id: string;
     startDate: Date;
@@ -32,7 +33,7 @@ const dateFormatter = new Intl.DateTimeFormat("de-DE", {
   day: "numeric",
 });
 
-function tripDistanceKm(visits: TripEntry["visits"]) {
+function estimateDistanceKm(visits: TripEntry["visits"]) {
   let total = 0;
   for (let i = 1; i < visits.length; i++) {
     const a = visits[i - 1].country;
@@ -166,7 +167,10 @@ export function TripsList({ trips }: { trips: TripEntry[] }) {
           const dates = trip.visits.flatMap((v) => [v.startDate, v.endDate ?? v.startDate]);
           const start = dates.length ? new Date(Math.min(...dates.map((d) => d.getTime()))) : null;
           const end = dates.length ? new Date(Math.max(...dates.map((d) => d.getTime()))) : null;
-          const distance = tripDistanceKm(trip.visits);
+          const hasRealDistance = typeof trip.distanceKm === "number";
+          const distance = hasRealDistance
+            ? Math.round(trip.distanceKm as number)
+            : estimateDistanceKm(trip.visits);
 
           return (
             <div
@@ -224,7 +228,10 @@ export function TripsList({ trips }: { trips: TripEntry[] }) {
               {distance > 0 && (
                 <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
                   <Route className="h-3.5 w-3.5" />
-                  {distance.toLocaleString("de-DE")} km zwischen den Stationen
+                  {distance.toLocaleString("de-DE")} km
+                  {hasRealDistance
+                    ? " zurückgelegt"
+                    : " zwischen den Stationen (geschätzt)"}
                 </div>
               )}
               {Array.isArray(trip.route) && trip.route.length > 0 && (

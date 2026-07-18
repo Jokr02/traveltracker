@@ -37,6 +37,8 @@ export type PolarstepsTrip = {
   uuid: string;
   name: string;
   summary: string | null;
+  /** Von Polarsteps berechnete tatsächliche Reisedistanz (gefahren/geflogen), nicht Luftlinie. */
+  total_km: number | null;
   all_steps: PolarstepsStep[];
 };
 
@@ -126,7 +128,7 @@ export function extractRoute(
 
 export type PolarstepsImportResult =
   | { status: "already_imported"; tripId: string; tripName: string }
-  | { status: "route_updated"; tripId: string; tripName: string }
+  | { status: "updated"; tripId: string; tripName: string }
   | { status: "no_location_data" }
   | {
       status: "imported";
@@ -141,19 +143,26 @@ export async function importPolarstepsTrip(
   locationsFile: PolarstepsLocationsFile | null | undefined,
 ): Promise<PolarstepsImportResult> {
   const route = extractRoute(locationsFile);
+  const hasDistance = typeof trip.total_km === "number" && !Number.isNaN(trip.total_km);
 
   const existingTrip = await prisma.trip.findUnique({
     where: { externalId: trip.uuid },
   });
 
   if (existingTrip) {
-    if (route && !existingTrip.route) {
+    const updateData: { route?: [number, number][]; distanceKm?: number } = {};
+    if (route && !existingTrip.route) updateData.route = route;
+    if (hasDistance && existingTrip.distanceKm == null) {
+      updateData.distanceKm = trip.total_km as number;
+    }
+
+    if (Object.keys(updateData).length > 0) {
       await prisma.trip.update({
         where: { id: existingTrip.id },
-        data: { route },
+        data: updateData,
       });
       return {
-        status: "route_updated",
+        status: "updated",
         tripId: existingTrip.id,
         tripName: existingTrip.name,
       };
@@ -176,6 +185,7 @@ export async function importPolarstepsTrip(
       notes: trip.summary || null,
       externalId: trip.uuid,
       route: route ?? undefined,
+      distanceKm: hasDistance ? (trip.total_km as number) : undefined,
     },
   });
 

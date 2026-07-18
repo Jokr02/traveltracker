@@ -61,9 +61,9 @@ export async function importTripFromPolarsteps(
   switch (result.status) {
     case "already_imported":
       return { success: `„${result.tripName}“ war bereits importiert.` };
-    case "route_updated":
+    case "updated":
       return {
-        success: `„${result.tripName}“ war bereits importiert — Routendaten wurden ergänzt.`,
+        success: `„${result.tripName}“ war bereits importiert — fehlende Route/Distanz wurden ergänzt.`,
       };
     case "no_location_data":
       return {

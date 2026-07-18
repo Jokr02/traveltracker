@@ -63,6 +63,10 @@ model Trip {
   // locations.json), für die Kartendarstellung. Ohne Import: null, dann wird
   // eine gerade Linie zwischen den Länder-Mittelpunkten gezeichnet.
   route      Json?
+  // Tatsächlich gefahrene/geflogene Distanz (z.B. Polarsteps' total_km).
+  // Fehlt sie, wird auf der Reisen-Seite die Luftlinie zwischen den
+  // Stationen als Schätzung angezeigt.
+  distanceKm Float?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -110,4 +114,14 @@ model Setting {
   homeCountryId String?
   homeCountry   Country? @relation(fields: [homeCountryId], references: [id], onDelete: SetNull)
   updatedAt     DateTime @updatedAt
+}
+
+// Fehlgeschlagene Login-Versuche pro IP, für simples Rate-Limiting.
+// Alte Einträge werden opportunistisch beim Login gelöscht (kein Cronjob nötig).
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  ip        String
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt])
 }

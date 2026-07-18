@@ -237,3 +237,22 @@ Distanz, nicht Luftlinie) — landet in `Trip.distanceKm` und wird auf `/trips`
 als "X km zurückgelegt" angezeigt. Bei manuell angelegten Reisen (oder wenn
 `total_km` fehlt) zeigt die Karte stattdessen die aus den Länder-Mittelpunkten
 geschätzte Luftlinien-Distanz, klar als "(geschätzt)" gekennzeichnet.
+
+## Social-Share-Bilder (Story-Format)
+
+Auf `/stats` ("Als Story teilen") und pro Reise auf `/trips` gibt es einen
+Share-Button, der ein 1080×1920px-PNG generiert (Instagram/Snapchat-Story-
+Format): Gesamtstatistik (besuchte Länder, km, Länder + km pro Kontinent) oder
+Zusammenfassung einer einzelnen Reise (Länder, Distanz, Transportmittel,
+Dauer). Auf Mobilgeräten öffnet der Button den nativen Share-Dialog (Web Share
+API mit Datei-Anhang) direkt zu Instagram Stories & Co., auf Desktop wird das
+Bild heruntergeladen.
+
+Technisch: `next/og`s `ImageResponse` (Satori-basiert) unter
+`src/app/api/share/stats/route.tsx` und `src/app/api/share/trip/[id]/route.tsx`
+— beide hinter unserer App-Auth (kein öffentlicher Endpunkt). Die
+`Geist`-Schriftschnitte liegen als TTF unter `src/assets/fonts/` (SIL Open
+Font License, siehe `OFL.txt` dort) und werden serverseitig geladen, weil
+Satori keine `next/font`-Instanzen oder CSS-Variablen versteht — Farben in
+diesen beiden Routen sind deshalb bewusst als literale Hex-Werte statt
+`var(--...)` geschrieben.

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Plus, Trash2, Luggage, Route, Upload, MapPinned } from "lucide-react";
 import { createTrip, deleteTrip } from "@/app/actions/trips";
 import { PolarstepsImportForm } from "@/components/PolarstepsImportForm";
+import { ShareButton } from "@/components/ShareButton";
 import { haversineKm } from "@/lib/geo";
 
 export type TripEntry = {
@@ -190,15 +191,25 @@ export function TripsList({ trips }: { trips: TripEntry[] }) {
                     </div>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(trip.id)}
-                  disabled={deletingId === trip.id}
-                  aria-label="Reise löschen"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-900/20 dark:hover:text-red-400"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                <div className="flex shrink-0 items-center gap-1">
+                  {trip.visits.length > 0 && (
+                    <ShareButton
+                      url={`/api/share/trip/${trip.id}`}
+                      filename={`${trip.name.replace(/[^a-zA-Z0-9._-]/g, "_")}.png`}
+                      label=""
+                      className="!p-2"
+                    />
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(trip.id)}
+                    disabled={deletingId === trip.id}
+                    aria-label="Reise löschen"
+                    className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:text-zinc-400 dark:hover:bg-red-900/20 dark:hover:text-red-400"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
 
               {trip.notes && (

@@ -6,6 +6,7 @@ import { YearHeatmap } from "@/components/YearHeatmap";
 import { VisitTimeline } from "@/components/VisitTimeline";
 import { AchievementsGrid } from "@/components/AchievementsGrid";
 import { TravelScoreCard } from "@/components/TravelScoreCard";
+import { ShareButton } from "@/components/ShareButton";
 import { Globe2, Map as MapIcon, Route, Trophy } from "lucide-react";
 
 export default async function StatsPage() {
@@ -15,13 +16,21 @@ export default async function StatsPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
-          Statistik
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Alle Zahlen und Meilensteine rund um deine Reisen.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-zinc-900 dark:text-zinc-50">
+            Statistik
+          </h1>
+          <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            Alle Zahlen und Meilensteine rund um deine Reisen.
+          </p>
+        </div>
+        <ShareButton
+          url="/api/share/stats"
+          filename="travel-tracker-stats.png"
+          label="Als Story teilen"
+          className="shrink-0"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

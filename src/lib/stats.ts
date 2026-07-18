@@ -67,16 +67,27 @@ export async function getStats() {
     .sort((a, b) => a.year - b.year);
 
   let totalKm = 0;
+  const continentKmMap = new Map<string, number>();
   for (let i = 1; i < timeline.length; i++) {
     const prev = countries.find((c) => c.id === timeline[i - 1].countryId)!;
     const curr = countries.find((c) => c.id === timeline[i].countryId)!;
-    totalKm += haversineKm(
+    const legKm = haversineKm(
       prev.latitude,
       prev.longitude,
       curr.latitude,
       curr.longitude,
     );
+    totalKm += legKm;
+    // Jede Etappe wird dem Kontinent des Ziellandes zugerechnet — Summe über
+    // alle Kontinente ergibt wieder totalKm.
+    continentKmMap.set(
+      timeline[i].continent,
+      (continentKmMap.get(timeline[i].continent) ?? 0) + legKm,
+    );
   }
+  const continentKm = [...continentKmMap.entries()]
+    .map(([continent, km]) => ({ continent, km: Math.round(km) }))
+    .sort((a, b) => b.km - a.km);
 
   const continentsVisitedByYear = new Map<number, Set<string>>();
   for (const c of visitedCountries) {
@@ -158,6 +169,7 @@ export async function getStats() {
     visitedCount,
     areaCoveragePct,
     continentBreakdown,
+    continentKm,
     timeline,
     yearlyNewCountries,
     totalKm: Math.round(totalKm),

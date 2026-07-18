@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { ThemeInitScript } from "@/components/ThemeInitScript";
 import "./globals.css";
 
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col bg-[var(--background)] text-[var(--foreground)]">
         {children}
         <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

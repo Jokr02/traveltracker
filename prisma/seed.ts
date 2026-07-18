@@ -86,6 +86,7 @@ async function main() {
       longitude,
       areaKm2: c.area ?? null,
       flagEmoji: c.flag ?? null,
+      cca2: c.cca2 ?? null,
       ccn3: c.ccn3 ?? null,
       borders: c.borders ?? [],
       languages,

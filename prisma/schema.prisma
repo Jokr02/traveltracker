@@ -30,6 +30,7 @@ enum TransportMode {
 model Country {
   id             String         @id @default(cuid())
   cca3           String         @unique
+  cca2           String?        @unique
   ccn3           String?
   name           String
   continent      String
@@ -53,11 +54,13 @@ model Country {
 }
 
 model Trip {
-  id        String   @id @default(cuid())
-  name      String
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  name       String
+  notes      String?
+  // Für Importer (z.B. Polarsteps): externe Trip-ID, verhindert Doppel-Import.
+  externalId String?  @unique
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   visits Visit[]
 }

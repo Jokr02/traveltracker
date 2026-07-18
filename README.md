@@ -150,4 +150,29 @@ npx prisma studio        # DB-GUI
 npx prisma db seed       # Länder (neu) einspielen
 npx prisma migrate dev   # neue Migration bei Schema-Änderungen (lokal)
 npx prisma migrate deploy # Migrationen produktiv ausrollen
+npm run import:polarsteps [ordner]  # Polarsteps-Reise importieren, siehe unten
 ```
+
+## Polarsteps-Import
+
+`scripts/import-polarsteps.ts` importiert eine mit [Polarsteps](https://polarsteps.com)
+aufgezeichnete Reise als `Trip` mit mehreren `Visit`s.
+
+1. Auf polarsteps.com einloggen → Account Settings → "Download my data" anfordern.
+2. Aus dem Export den Ordner der gewünschten Reise (enthält `trip.json` und
+   `locations.json`) in einen Ordner im Projekt legen (Standard: `files_polarsteps/`,
+   ist per `.gitignore` von Git ausgeschlossen — persönliche Reisedaten).
+3. `npm run import:polarsteps` (oder mit anderem Pfad: `npm run import:polarsteps -- ./mein-ordner`).
+
+Funktionsweise: aufeinanderfolgende Steps mit demselben Land (Polarsteps liefert
+den ISO-Ländercode direkt pro Step mit) werden zu einem `Visit` zusammengefasst.
+Steps mit Ländercode `"00"` (internationale Gewässer, z.B. während einer
+Fährüberfahrt) markieren die Länder davor/danach als Fährstrecke. Da Polarsteps
+in diesem Export kein explizites Transportmittel pro Step liefert und es laut
+Definition um Roadtrips geht, wird `CAR` als Basis angenommen, `FERRY` kommt
+bei erkannten Wasserquerungen dazu. Die Notizen jedes Visits sind eine
+zusammengefasste Liste der Step-Namen — danach ganz normal über die UI editierbar.
+Ein erneuter Import derselben Reise (per Polarsteps-Trip-UUID erkannt) wird
+übersprungen, es entstehen keine Duplikate. `locations.json` (die dichte
+GPS-Spur) wird aktuell nicht verwendet — die Karte zeichnet weiterhin nur eine
+gerade Linie zwischen den Ländermittelpunkten, nicht die exakte Route.

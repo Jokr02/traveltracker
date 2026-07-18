@@ -2,14 +2,16 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Plus, Trash2, Luggage, Route } from "lucide-react";
+import { Plus, Trash2, Luggage, Route, Upload, MapPinned } from "lucide-react";
 import { createTrip, deleteTrip } from "@/app/actions/trips";
+import { PolarstepsImportForm } from "@/components/PolarstepsImportForm";
 import { haversineKm } from "@/lib/geo";
 
 export type TripEntry = {
   id: string;
   name: string;
   notes: string | null;
+  route: unknown;
   visits: {
     id: string;
     startDate: Date;
@@ -108,8 +110,10 @@ function CreateTripForm({ onDone }: { onDone: () => void }) {
   );
 }
 
+type OpenForm = "none" | "create" | "import";
+
 export function TripsList({ trips }: { trips: TripEntry[] }) {
-  const [creating, setCreating] = useState(false);
+  const [openForm, setOpenForm] = useState<OpenForm>("none");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function handleDelete(tripId: string) {
@@ -124,16 +128,30 @@ export function TripsList({ trips }: { trips: TripEntry[] }) {
 
   return (
     <div className="flex flex-col gap-4">
-      {creating ? (
-        <CreateTripForm onDone={() => setCreating(false)} />
-      ) : (
-        <button
-          type="button"
-          onClick={() => setCreating(true)}
-          className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-zinc-300 py-3 text-sm font-medium text-zinc-600 transition-colors hover:border-teal-400 hover:text-teal-700 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-teal-700 dark:hover:text-teal-300"
-        >
-          <Plus className="h-4 w-4" /> Neue Reise
-        </button>
+      {openForm === "create" && (
+        <CreateTripForm onDone={() => setOpenForm("none")} />
+      )}
+      {openForm === "import" && (
+        <PolarstepsImportForm onDone={() => setOpenForm("none")} />
+      )}
+
+      {openForm === "none" && (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => setOpenForm("create")}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-zinc-300 py-3 text-sm font-medium text-zinc-600 transition-colors hover:border-teal-400 hover:text-teal-700 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-teal-700 dark:hover:text-teal-300"
+          >
+            <Plus className="h-4 w-4" /> Neue Reise
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpenForm("import")}
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-zinc-300 py-3 text-sm font-medium text-zinc-600 transition-colors hover:border-teal-400 hover:text-teal-700 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-teal-700 dark:hover:text-teal-300"
+          >
+            <Upload className="h-4 w-4" /> Aus Polarsteps importieren
+          </button>
+        </div>
       )}
 
       {trips.length === 0 && (
@@ -207,6 +225,12 @@ export function TripsList({ trips }: { trips: TripEntry[] }) {
                 <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
                   <Route className="h-3.5 w-3.5" />
                   {distance.toLocaleString("de-DE")} km zwischen den Stationen
+                </div>
+              )}
+              {Array.isArray(trip.route) && trip.route.length > 0 && (
+                <div className="flex items-center gap-1.5 text-xs text-teal-700 dark:text-teal-400">
+                  <MapPinned className="h-3.5 w-3.5" />
+                  Echte Route auf der Karte hinterlegt
                 </div>
               )}
             </div>

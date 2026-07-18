@@ -59,6 +59,10 @@ model Trip {
   notes      String?
   // Für Importer (z.B. Polarsteps): externe Trip-ID, verhindert Doppel-Import.
   externalId String?  @unique
+  // Tatsächlicher GPS-Track als [lng, lat]-Punktliste (z.B. aus Polarsteps
+  // locations.json), für die Kartendarstellung. Ohne Import: null, dann wird
+  // eine gerade Linie zwischen den Länder-Mittelpunkten gezeichnet.
+  route      Json?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

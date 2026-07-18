@@ -47,6 +47,8 @@ type TooltipState = {
 export type MapTrip = {
   id: string;
   stops: { longitude: number; latitude: number }[];
+  /** Echter GPS-Track (z.B. aus Polarsteps), [lng, lat] chronologisch. Wenn vorhanden, wird das statt der geraden Linien zwischen `stops` gezeichnet. */
+  route?: [number, number][] | null;
 };
 
 export function WorldMap({
@@ -156,23 +158,37 @@ export function WorldMap({
             }
           </Geographies>
 
-          {trips.flatMap((trip) =>
-            trip.stops.slice(1).map((stop, i) => {
+          {trips.flatMap((trip) => {
+            const lineStyle = {
+              stroke: "var(--text-secondary)",
+              strokeWidth: 1,
+              strokeDasharray: "3 3",
+              strokeLinecap: "round" as const,
+              fill: "none",
+            };
+
+            if (trip.route && trip.route.length >= 2) {
+              return [
+                <Line
+                  key={trip.id}
+                  coordinates={trip.route}
+                  {...lineStyle}
+                />,
+              ];
+            }
+
+            return trip.stops.slice(1).map((stop, i) => {
               const from = trip.stops[i];
               return (
                 <Line
                   key={`${trip.id}-${i}`}
                   from={[from.longitude, from.latitude]}
                   to={[stop.longitude, stop.latitude]}
-                  stroke="var(--text-secondary)"
-                  strokeWidth={1}
-                  strokeDasharray="3 3"
-                  strokeLinecap="round"
-                  fill="none"
+                  {...lineStyle}
                 />
               );
-            }),
-          )}
+            });
+          })}
         </ZoomableGroup>
       </ComposableMap>
 

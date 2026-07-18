@@ -138,6 +138,22 @@ Datenabfragen in den Pages dieses Projekts sind deshalb bewusst sequenziell
 (mehrere einzelne `await`s statt `Promise.all`). Falls du neue Pages/Actions
 schreibst, die mehrere Prisma-Queries brauchen: sequenziell `await`en, nicht
 parallelisieren — auch wenn es unintuitiv verschenkte Performance aussieht.
+Das reduziert die Race Condition auf ein seltenes Restrisiko (in der lokalen
+Dev-DB gelegentlich noch bei Next.js' automatischem Link-Prefetching
+beobachtet) statt eines ~50%-Fehlers — ein bekanntes, dokumentiertes Risiko
+dieses noch sehr neuen Treiber-Stacks, kein Grund zur Sorge für den produktiven
+Einsatz mit echtem Postgres.
+
+### Bekannte Falle: `react-simple-maps` braucht `ssr: false`
+
+Die `WorldMap`-Komponente wird ausschließlich über `WorldMapClient.tsx`
+(`next/dynamic(..., { ssr: false })`) eingebunden, nie direkt. Mit normalem SSR
+weichen die von `react-simple-maps`/D3 berechneten Pfad-Koordinaten für Routen
+mit vielen Punkten (`Line coordinates={...}`) zwischen Server- und
+Client-Render minimal voneinander ab → React-Hydration-Mismatch-Warnung. Da
+die Karte ohnehin rein interaktiv ist (Zoom/Pan/Klicks) und von SSR nicht
+profitiert, ist reines Client-Rendering hier die richtige Lösung, nicht das
+Kaschieren der Warnung.
 
 ## Scripts
 
@@ -155,24 +171,36 @@ npm run import:polarsteps [ordner]  # Polarsteps-Reise importieren, siehe unten
 
 ## Polarsteps-Import
 
-`scripts/import-polarsteps.ts` importiert eine mit [Polarsteps](https://polarsteps.com)
-aufgezeichnete Reise als `Trip` mit mehreren `Visit`s.
+Reisen, die mit [Polarsteps](https://polarsteps.com) aufgezeichnet wurden, lassen
+sich als `Trip` mit mehreren `Visit`s importieren — entweder über die App
+(`/trips` → "Aus Polarsteps importieren") oder per CLI
+(`scripts/import-polarsteps.ts`). Beide nutzen dieselbe Logik in
+`src/lib/polarsteps.ts`.
 
 1. Auf polarsteps.com einloggen → Account Settings → "Download my data" anfordern.
-2. Aus dem Export den Ordner der gewünschten Reise (enthält `trip.json` und
-   `locations.json`) in einen Ordner im Projekt legen (Standard: `files_polarsteps/`,
-   ist per `.gitignore` von Git ausgeschlossen — persönliche Reisedaten).
-3. `npm run import:polarsteps` (oder mit anderem Pfad: `npm run import:polarsteps -- ./mein-ordner`).
+2. Aus dem Export `trip.json` (erforderlich) und `locations.json` (optional, für
+   die echte Route auf der Karte) der gewünschten Reise entnehmen.
+3. **Über die App:** auf `/trips` → "Aus Polarsteps importieren" → beide Dateien
+   auswählen → "Importieren".
+   **Über die CLI:** beide Dateien in einen Ordner legen (Standard:
+   `files_polarsteps/`, per `.gitignore` von Git ausgeschlossen — persönliche
+   Reisedaten) und `npm run import:polarsteps` ausführen (anderer Pfad:
+   `npm run import:polarsteps -- ./mein-ordner`).
 
 Funktionsweise: aufeinanderfolgende Steps mit demselben Land (Polarsteps liefert
 den ISO-Ländercode direkt pro Step mit) werden zu einem `Visit` zusammengefasst.
 Steps mit Ländercode `"00"` (internationale Gewässer, z.B. während einer
 Fährüberfahrt) markieren die Länder davor/danach als Fährstrecke. Da Polarsteps
 in diesem Export kein explizites Transportmittel pro Step liefert und es laut
-Definition um Roadtrips geht, wird `CAR` als Basis angenommen, `FERRY` kommt
-bei erkannten Wasserquerungen dazu. Die Notizen jedes Visits sind eine
+Definition um Roadtrips geht, wird `CAR` als Basis angenommen, `FERRY` kommt bei
+erkannten Wasserquerungen dazu. Die Notizen jedes Visits sind eine
 zusammengefasste Liste der Step-Namen — danach ganz normal über die UI editierbar.
-Ein erneuter Import derselben Reise (per Polarsteps-Trip-UUID erkannt) wird
-übersprungen, es entstehen keine Duplikate. `locations.json` (die dichte
-GPS-Spur) wird aktuell nicht verwendet — die Karte zeichnet weiterhin nur eine
-gerade Linie zwischen den Ländermittelpunkten, nicht die exakte Route.
+Ein erneuter Import derselben Reise (per Polarsteps-Trip-UUID in `Trip.externalId`
+erkannt) wird übersprungen; fehlten beim ersten Import Routendaten und wird
+später mit `locations.json` erneut importiert, werden nur die Routendaten
+nachgetragen (keine doppelten Visits).
+
+Ist `locations.json` vorhanden, wird die dichte GPS-Spur (auf max. 3000 Punkte
+downgesampelt) in `Trip.route` gespeichert und auf der Dashboard-Karte als
+tatsächlich gefahrene Route gezeichnet statt der sonst üblichen geraden Linie
+zwischen den Länder-Mittelpunkten.

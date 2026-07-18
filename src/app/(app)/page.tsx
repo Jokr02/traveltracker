@@ -2,7 +2,7 @@ import Link from "next/link";
 import { getAllCountriesWithStatus } from "@/lib/countries";
 import { getStats } from "@/lib/stats";
 import { getAllTrips } from "@/lib/trips";
-import { WorldMap } from "@/components/WorldMap";
+import { WorldMap } from "@/components/WorldMapClient";
 import { StatTile } from "@/components/StatTile";
 import { ArrowRight, Globe2, Map as MapIcon, Route, Trophy } from "lucide-react";
 
@@ -22,6 +22,7 @@ export default async function DashboardPage() {
         longitude: v.country.longitude,
         latitude: v.country.latitude,
       })),
+      route: Array.isArray(t.route) ? (t.route as [number, number][]) : null,
     }));
 
   return (

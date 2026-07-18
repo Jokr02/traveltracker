@@ -1,0 +1,57 @@
+// Prisma schema — Travel Tracker
+// https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Nur relevant, solange ein Land noch keinen Visit hat — der erste Visit
+// macht ein Land automatisch "besucht", unabhängig vom PlanningStatus.
+enum PlanningStatus {
+  NONE
+  WISHLIST
+  PLANNED
+}
+
+model Country {
+  id             String         @id @default(cuid())
+  cca3           String         @unique
+  ccn3           String?
+  name           String
+  continent      String
+  subregion      String?
+  latitude       Float
+  longitude      Float
+  areaKm2        Float?
+  flagEmoji      String?
+  borders        String[]
+  planningStatus PlanningStatus @default(NONE)
+
+  visits Visit[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([continent])
+}
+
+model Visit {
+  id            String    @id @default(cuid())
+  countryId     String
+  country       Country   @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  startDate     DateTime
+  endDate       DateTime?
+  notes         String?
+  rating        Int?
+  coverImageUrl String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([countryId])
+}

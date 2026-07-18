@@ -16,13 +16,6 @@ export async function uploadVisitPhoto(
 ): Promise<PhotoUploadState> {
   await requireAuth();
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return {
-      error:
-        "Foto-Upload ist nicht konfiguriert. BLOB_READ_WRITE_TOKEN fehlt (siehe README).",
-    };
-  }
-
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
     return { error: "Bitte ein Bild auswählen." };
@@ -35,11 +28,24 @@ export async function uploadVisitPhoto(
   }
 
   const { put } = await import("@vercel/blob");
-  const blob = await put(
-    `visits/${visitId}/${crypto.randomUUID()}-${file.name}`,
-    file,
-    { access: "public" },
-  );
+
+  let blob: { url: string };
+  try {
+    blob = await put(
+      `visits/${visitId}/${crypto.randomUUID()}-${file.name}`,
+      file,
+      { access: "public" },
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/credentials|token|BLOB_STORE_ID/i.test(message)) {
+      return {
+        error:
+          "Foto-Upload ist nicht konfiguriert. Vercel Blob Store mit dem Projekt verbinden (siehe README).",
+      };
+    }
+    return { error: "Foto-Upload fehlgeschlagen. Bitte erneut versuchen." };
+  }
 
   await prisma.visitPhoto.create({
     data: { visitId, url: blob.url },
@@ -54,10 +60,8 @@ export async function deleteVisitPhoto(photoId: string, countryId: string) {
 
   const photo = await prisma.visitPhoto.delete({ where: { id: photoId } });
 
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const { del } = await import("@vercel/blob");
-    await del(photo.url).catch(() => {});
-  }
+  const { del } = await import("@vercel/blob");
+  await del(photo.url).catch(() => {});
 
   revalidatePath(`/countries/${countryId}`);
 }

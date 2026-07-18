@@ -44,21 +44,27 @@ für die lokale Entwicklung in diesem Projekt verwendet.
 | `DATABASE_URL` | Postgres-Connection-String |
 | `APP_PASSWORD` | Passwort für den Single-User-Login |
 | `SESSION_SECRET` | Zufälliger Secret-String zum Signieren der Session-Cookies (`openssl rand -base64 32`) |
-| `BLOB_READ_WRITE_TOKEN` | Optional, für Foto-Upload — siehe [Foto-Upload](#foto-upload-vercel-blob) |
+| `BLOB_READ_WRITE_TOKEN` | Nur für lokale Entwicklung nötig — siehe [Foto-Upload](#foto-upload-vercel-blob) |
 
 ### Foto-Upload (Vercel Blob)
 
 Der Foto-Upload bei einem Besuch nutzt [Vercel Blob](https://vercel.com/docs/storage/vercel-blob).
-Ohne konfigurierten Token bleibt die App voll nutzbar, der Upload zeigt nur eine
-Fehlermeldung an ("Foto-Upload ist nicht konfiguriert").
+Ohne funktionierende Zugangsdaten bleibt die App voll nutzbar, der Upload zeigt nur
+eine Fehlermeldung an.
 
-So aktivierst du ihn:
+**Auf Vercel (Production/Preview):** Neuere Blob-Stores authentifizieren sich per
+OIDC statt über einen statischen Token — die `@vercel/blob`-SDK erkennt das
+automatisch über die von Vercel injizierte OIDC-Identität kombiniert mit der
+Env-Var `BLOB_STORE_ID`. Es reicht also, den Store im Vercel-Dashboard unter
+*Storage* anzulegen und mit dem Projekt zu verbinden (Production + Preview) —
+**kein** `BLOB_READ_WRITE_TOKEN` nötig, kein manuelles Kopieren. Nach dem
+Verbinden einmal redeployen, damit die Functions die neue `BLOB_STORE_ID` sehen.
 
-1. Im Vercel-Dashboard → Projekt → *Storage* → *Create* → *Blob* → Store erstellen.
-2. Der Store erzeugt automatisch eine `BLOB_READ_WRITE_TOKEN`-Env-Var im Projekt
-   (für Production **und** Preview verfügbar machen).
-3. Für lokale Entwicklung: den Token aus dem Vercel-Dashboard (Storage → Store →
-   `.env.local` Tab) in deine lokale `.env` kopieren.
+**Für lokale Entwicklung** gibt es keine automatische OIDC-Identität (die App
+läuft ja nicht auf Vercels Infrastruktur). Dafür brauchst du weiterhin einen
+klassischen Read-Write-Token: Vercel-Dashboard → Storage → Store → Tab
+"Tokens" (oder ".env.local") → Token erzeugen/kopieren → als
+`BLOB_READ_WRITE_TOKEN` in die lokale `.env` eintragen.
 
 Bilder werden direkt server-seitig hochgeladen (Server Action), daher gilt das
 Vercel-Function-Body-Limit von 4.5 MB — die App validiert Dateien serverseitig auf

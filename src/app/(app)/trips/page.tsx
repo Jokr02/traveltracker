@@ -1,8 +1,10 @@
 import { getAllTrips } from "@/lib/trips";
+import { isDemoMode } from "@/lib/session";
 import { TripsList } from "@/components/TripsList";
 
 export default async function TripsPage() {
   const trips = await getAllTrips();
+  const demoMode = await isDemoMode();
 
   return (
     <div className="flex flex-col gap-6">
@@ -15,7 +17,7 @@ export default async function TripsPage() {
         </p>
       </div>
 
-      <TripsList trips={trips} />
+      <TripsList trips={trips} demoMode={demoMode} />
     </div>
   );
 }

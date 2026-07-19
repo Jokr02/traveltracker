@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 
 const MAX_SIZE_BYTES = 4 * 1024 * 1024; // 4 MB — Vercel Function Body Limit liegt bei 4.5 MB
@@ -15,6 +15,7 @@ export async function uploadVisitPhoto(
   formData: FormData,
 ): Promise<PhotoUploadState> {
   await requireAuth();
+  const { db, isDemo } = await getDb();
 
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) {
@@ -29,11 +30,12 @@ export async function uploadVisitPhoto(
 
   const { put } = await import("@vercel/blob");
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const prefix = isDemo ? "demo/visits" : "visits";
 
   let pathname: string;
   try {
     const blob = await put(
-      `visits/${visitId}/${crypto.randomUUID()}-${safeName}`,
+      `${prefix}/${visitId}/${crypto.randomUUID()}-${safeName}`,
       file,
       { access: "private" },
     );
@@ -50,7 +52,7 @@ export async function uploadVisitPhoto(
     return { error: "Foto-Upload fehlgeschlagen. Bitte erneut versuchen." };
   }
 
-  await prisma.visitPhoto.create({
+  await db.visitPhoto.create({
     data: { visitId, pathname },
   });
 
@@ -60,8 +62,9 @@ export async function uploadVisitPhoto(
 
 export async function deleteVisitPhoto(photoId: string, countryId: string) {
   await requireAuth();
+  const { db } = await getDb();
 
-  const photo = await prisma.visitPhoto.delete({ where: { id: photoId } });
+  const photo = await db.visitPhoto.delete({ where: { id: photoId } });
 
   const { del } = await import("@vercel/blob");
   await del(photo.pathname).catch(() => {});

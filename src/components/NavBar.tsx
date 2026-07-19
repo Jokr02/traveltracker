@@ -19,11 +19,21 @@ function isActive(pathname: string, href: string) {
   return pathname.startsWith(href);
 }
 
-export function NavBar() {
+export function NavBar({ demoMode }: { demoMode?: boolean }) {
   const pathname = usePathname();
 
   return (
     <>
+      {demoMode && (
+        <div className="flex items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-1.5 text-xs font-medium text-amber-800 dark:border-amber-900 dark:bg-amber-900/20 dark:text-amber-300">
+          Demo-Modus – Beispieldaten, Änderungen werden regelmäßig zurückgesetzt.
+          <form action={logout}>
+            <button type="submit" className="underline underline-offset-2 hover:text-amber-950 dark:hover:text-amber-200">
+              Demo verlassen
+            </button>
+          </form>
+        </div>
+      )}
       <header className="sticky top-0 z-30 border-b border-zinc-200 bg-white/80 backdrop-blur dark:border-zinc-800 dark:bg-zinc-950/80">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-2 font-semibold text-zinc-900 dark:text-zinc-50">

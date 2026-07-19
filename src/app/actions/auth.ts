@@ -4,13 +4,15 @@ import crypto from "crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createSession, deleteSession } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { prisma, demoPrisma } from "@/lib/prisma";
+import { resetDemoData } from "@/lib/demo/reset";
 
 export type LoginState = { error?: string } | undefined;
 
 const MAX_ATTEMPTS = 5;
 const WINDOW_MINUTES = 15;
 const CLEANUP_AFTER_HOURS = 24;
+const DEMO_RESET_INTERVAL_HOURS = 6;
 
 function safeCompare(a: string, b: string) {
   const bufA = Buffer.from(a);
@@ -79,4 +81,39 @@ export async function login(
 export async function logout() {
   await deleteSession();
   redirect("/login");
+}
+
+/** Alternative zum Passwort-Login: eigene, isolierte Demo-DB mit
+ * Beispieldaten. Rührt LoginAttempt/Rate-Limiting nicht an — das gilt nur
+ * für das echte Passwort. */
+export async function loginDemo(
+  _prevState: LoginState,
+  _formData: FormData,
+): Promise<LoginState> {
+  if (!demoPrisma) {
+    return {
+      error: "Serverkonfiguration fehlt (DEMO_DATABASE_URL ist nicht gesetzt).",
+    };
+  }
+
+  const state = await demoPrisma.demoState.upsert({
+    where: { id: "singleton" },
+    update: {},
+    create: { id: "singleton" },
+  });
+
+  const resetDue =
+    Date.now() - state.lastResetAt.getTime() >
+    DEMO_RESET_INTERVAL_HOURS * 60 * 60 * 1000;
+
+  if (resetDue) {
+    await resetDemoData(demoPrisma);
+    await demoPrisma.demoState.update({
+      where: { id: "singleton" },
+      data: { lastResetAt: new Date() },
+    });
+  }
+
+  await createSession({ demo: true });
+  redirect("/");
 }

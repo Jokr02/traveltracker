@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 
 export type TripFormState = { error?: string } | undefined;
@@ -11,6 +11,7 @@ export async function createTrip(
   formData: FormData,
 ): Promise<TripFormState> {
   await requireAuth();
+  const { db } = await getDb();
 
   const name = String(formData.get("name") ?? "").trim();
   if (!name) {
@@ -18,7 +19,7 @@ export async function createTrip(
   }
   const notes = String(formData.get("notes") ?? "").trim();
 
-  await prisma.trip.create({ data: { name, notes: notes || null } });
+  await db.trip.create({ data: { name, notes: notes || null } });
 
   revalidatePath("/trips");
   return undefined;
@@ -26,7 +27,8 @@ export async function createTrip(
 
 export async function deleteTrip(tripId: string) {
   await requireAuth();
-  await prisma.trip.delete({ where: { id: tripId } });
+  const { db } = await getDb();
+  await db.trip.delete({ where: { id: tripId } });
   revalidatePath("/trips");
   revalidatePath("/countries");
   revalidatePath("/");

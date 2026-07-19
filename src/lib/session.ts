@@ -14,30 +14,33 @@ function getSecretKey() {
   return new TextEncoder().encode(secret);
 }
 
-export async function encryptSession(): Promise<string> {
-  return new SignJWT({ authenticated: true })
+export type SessionPayload = { authenticated: true; demo: boolean };
+
+export async function encryptSession(opts?: { demo?: boolean }): Promise<string> {
+  return new SignJWT({ authenticated: true, demo: Boolean(opts?.demo) })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION_MS / 1000}s`)
     .sign(getSecretKey());
 }
 
-export async function decryptSession(
+export async function verifySessionToken(
   token: string | undefined,
-): Promise<boolean> {
-  if (!token) return false;
+): Promise<SessionPayload | null> {
+  if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getSecretKey(), {
       algorithms: ["HS256"],
     });
-    return payload.authenticated === true;
+    if (payload.authenticated !== true) return null;
+    return { authenticated: true, demo: payload.demo === true };
   } catch {
-    return false;
+    return null;
   }
 }
 
-export async function createSession() {
-  const token = await encryptSession();
+export async function createSession(opts?: { demo?: boolean }) {
+  const token = await encryptSession(opts);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, token, {
     httpOnly: true,
@@ -53,9 +56,20 @@ export async function deleteSession() {
   cookieStore.delete(SESSION_COOKIE);
 }
 
-export async function isAuthenticated(): Promise<boolean> {
+async function getSession(): Promise<SessionPayload | null> {
   const cookieStore = await cookies();
-  return decryptSession(cookieStore.get(SESSION_COOKIE)?.value);
+  return verifySessionToken(cookieStore.get(SESSION_COOKIE)?.value);
+}
+
+export async function isAuthenticated(): Promise<boolean> {
+  return (await getSession()) !== null;
+}
+
+/** Ob die aktuelle Session eine Demo-Session ist (eigene, isolierte Demo-DB
+ * statt der echten Daten — siehe src/lib/db.ts). */
+export async function isDemoMode(): Promise<boolean> {
+  const session = await getSession();
+  return session?.demo === true;
 }
 
 /** Defense-in-depth check for Server Actions/Route Handlers (Proxy already guards pages optimistically). */

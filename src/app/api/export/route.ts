@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { isAuthenticated } from "@/lib/session";
 import { TRANSPORT_LABELS } from "@/lib/transport";
 
@@ -17,7 +17,8 @@ export async function GET(request: NextRequest) {
 
   const format = request.nextUrl.searchParams.get("format") === "csv" ? "csv" : "json";
 
-  const countries = await prisma.country.findMany({
+  const { db } = await getDb();
+  const countries = await db.country.findMany({
     include: {
       visits: {
         include: { trip: true, photos: true },

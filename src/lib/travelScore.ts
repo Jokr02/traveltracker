@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { haversineKm } from "@/lib/geo";
 import { getSettings } from "@/lib/settings";
 
@@ -15,7 +15,8 @@ const KM_PER_DISTANCE_POINT = 200;
 export async function getTravelScore() {
   // Sequenziell statt Promise.all: gleichzeitige Prisma-Queries über den
   // pg-Adapter haben sich lokal als Race Condition erwiesen (siehe README).
-  const countries = await prisma.country.findMany({
+  const { db } = await getDb();
+  const countries = await db.country.findMany({
     include: { _count: { select: { visits: true } } },
   });
   const settings = await getSettings();

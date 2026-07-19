@@ -1,13 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 
 export async function setHomeCountry(countryId: string | null) {
   await requireAuth();
+  const { db } = await getDb();
 
-  await prisma.setting.upsert({
+  await db.setting.upsert({
     where: { id: "singleton" },
     update: { homeCountryId: countryId },
     create: { id: "singleton", homeCountryId: countryId },

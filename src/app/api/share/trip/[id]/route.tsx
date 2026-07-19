@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 import { isAuthenticated } from "@/lib/session";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { getShareFonts } from "@/lib/og-fonts";
 import { haversineKm } from "@/lib/geo";
 import { TRANSPORT_LABELS } from "@/lib/transport";
@@ -43,7 +43,8 @@ export async function GET(
 
   const { id } = await params;
 
-  const trip = await prisma.trip.findUnique({
+  const { db } = await getDb();
+  const trip = await db.trip.findUnique({
     where: { id },
     include: {
       visits: { include: { country: true }, orderBy: { startDate: "asc" } },

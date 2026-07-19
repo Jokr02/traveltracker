@@ -1,5 +1,5 @@
 import "server-only";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import type { Country } from "@/generated/prisma/client";
 
 export type CountryStatus = "visited" | "planned" | "wishlist" | "unvisited";
@@ -22,7 +22,8 @@ export type CountryListItem = Country & {
 export async function getAllCountriesWithStatus(): Promise<
   CountryListItem[]
 > {
-  const countries = await prisma.country.findMany({
+  const { db } = await getDb();
+  const countries = await db.country.findMany({
     include: { _count: { select: { visits: true } } },
     orderBy: { name: "asc" },
   });
@@ -40,7 +41,8 @@ export async function getAllCountriesWithStatus(): Promise<
 }
 
 export async function getCountryById(id: string) {
-  const country = await prisma.country.findUnique({
+  const { db } = await getDb();
+  const country = await db.country.findUnique({
     where: { id },
     include: {
       visits: {
@@ -57,7 +59,7 @@ export async function getCountryById(id: string) {
   });
 
   const neighborCountries = country.borders.length
-    ? await prisma.country.findMany({
+    ? await db.country.findMany({
         where: { cca3: { in: country.borders } },
         include: { _count: { select: { visits: true } } },
       })

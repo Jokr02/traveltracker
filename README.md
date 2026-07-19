@@ -46,6 +46,7 @@ für die lokale Entwicklung in diesem Projekt verwendet.
 | `APP_PASSWORD` | Passwort für den Single-User-Login |
 | `SESSION_SECRET` | Zufälliger Secret-String zum Signieren der Session-Cookies (`openssl rand -base64 32`) |
 | `BLOB_READ_WRITE_TOKEN` | Nur für lokale Entwicklung nötig — siehe [Foto-Upload](#foto-upload-vercel-blob) |
+| `DEMO_DATABASE_URL` | Optional — zweite, isolierte Postgres-DB für den Demo-Modus, siehe [Demo-Modus](#demo-modus) |
 
 ### Foto-Upload (Vercel Blob, privater Store)
 
@@ -81,6 +82,39 @@ Bilder werden direkt server-seitig hochgeladen (Server Action), daher gilt das
 Vercel-Function-Body-Limit von 4.5 MB — die App validiert Dateien serverseitig auf
 max. 4 MB.
 
+### Demo-Modus
+
+Auf `/login` gibt es neben dem Passwort-Login einen "Demo ausprobieren"-Button,
+der Zugriff auf einen eigenen, isolierten Datenbereich mit Beispieldaten gibt
+(volles Lese-/Schreibrecht: Reisen/Besuche/Fotos anlegen, bearbeiten, löschen) —
+ohne die echten Daten zu berühren. Alle Demo-Besucher teilen sich diesen einen
+Bereich; er setzt sich beim nächsten Demo-Login automatisch zurück, sobald seit
+dem letzten Reset mehr als 6 Stunden vergangen sind (`DEMO_RESET_INTERVAL_HOURS`
+in `src/app/actions/auth.ts`) — kein Cronjob nötig, gleiches Prinzip wie beim
+opportunistischen Aufräumen der `LoginAttempt`-Tabelle.
+
+Technisch läuft das über eine zweite, komplett separate Postgres-Datenbank mit
+identischem Schema (`DEMO_DATABASE_URL`), nicht über eine Tenant-Spalte in den
+bestehenden Tabellen — bei einer waschechten Single-User-App ohne jedes
+Tenant-Konzept wäre eine nachträgliche Tenant-Spalte auf jedem Model ein
+invasiverer und fehleranfälligerer Eingriff (vergessenes `where: tenantId` =
+Datenleck) als eine zweite DB. Fotos, die im Demo-Modus hochgeladen werden,
+landen im selben Vercel-Blob-Store, aber unter einem eigenen `demo/`-Pfad-Präfix
+und werden beim Reset mitgelöscht. Der Polarsteps-Import ist im Demo-Modus
+deaktiviert (schreibt sonst versehentlich in die echte DB, da er den Prisma-
+Client nicht wechselt).
+
+**Einrichtung** (optional — ohne `DEMO_DATABASE_URL` bleibt der Button
+unsichtbar):
+
+```bash
+# 1. Schema in der Demo-DB anlegen (gleiche Migrationen wie die echte DB):
+DATABASE_URL="$DEMO_DATABASE_URL" npx prisma migrate deploy
+
+# 2. Referenzländer + Beispiel-Reisen/Besuche einmalig seeden:
+DEMO_DATABASE_URL="$DEMO_DATABASE_URL" npm run seed:demo
+```
+
 ## Deployment auf Vercel
 
 1. Repo mit Vercel verbinden (GitHub-Integration → automatische Preview-Deployments pro Branch).
@@ -114,6 +148,8 @@ selbst sinnvoll entscheiden"). Getroffene Entscheidungen:
   opportunistisch bei jedem fehlgeschlagenen Login mitgelöscht.
 - **Fotos:** Nur externe Bild-URLs (`coverImageUrl`), kein Upload. Vercel Blob Storage
   lässt sich später einfach ergänzen, falls gewünscht.
+- **Demo-Modus:** Zweite, isolierte Postgres-DB statt Tenant-Spalte auf den
+  bestehenden Models — siehe [Demo-Modus](#demo-modus) für die Begründung.
 - **CSV-Import:** Nicht implementiert — die App wird beim Setup bereits mit allen 250
   Ländern geseedet, ein Import wäre redundant. Besuche trägt man ohnehin laufend einzeln ein.
 - **Datenmodell:** `Country.wishlist: Boolean` aus dem Vorschlag wurde zu

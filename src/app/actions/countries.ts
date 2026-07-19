@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 import { PlanningStatus } from "@/generated/prisma/client";
 
@@ -10,8 +10,9 @@ export async function setPlanningStatus(
   status: keyof typeof PlanningStatus,
 ) {
   await requireAuth();
+  const { db } = await getDb();
 
-  await prisma.country.update({
+  await db.country.update({
     where: { id: countryId },
     data: { planningStatus: status },
   });

@@ -1,8 +1,9 @@
 import "server-only";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 
 export async function getSettings() {
-  const settings = await prisma.setting.upsert({
+  const { db } = await getDb();
+  const settings = await db.setting.upsert({
     where: { id: "singleton" },
     update: {},
     create: { id: "singleton" },

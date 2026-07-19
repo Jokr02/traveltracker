@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { requireAuth } from "@/lib/session";
+import { requireAuth, isDemoMode } from "@/lib/session";
 import {
   importPolarstepsTrip,
   type PolarstepsLocationsFile,
@@ -25,6 +25,9 @@ export async function importTripFromPolarsteps(
   formData: FormData,
 ): Promise<PolarstepsImportState> {
   await requireAuth();
+  if (await isDemoMode()) {
+    return { error: "Der Polarsteps-Import ist im Demo-Modus nicht verfügbar." };
+  }
 
   const tripFile = formData.get("tripFile");
   if (!(tripFile instanceof File) || tripFile.size === 0) {

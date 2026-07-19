@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { clsx } from "clsx";
 import { Plus, Trash2, Luggage, Route, Upload, MapPinned } from "lucide-react";
 import { createTrip, deleteTrip } from "@/app/actions/trips";
 import { PolarstepsImportForm } from "@/components/PolarstepsImportForm";
@@ -114,7 +115,13 @@ function CreateTripForm({ onDone }: { onDone: () => void }) {
 
 type OpenForm = "none" | "create" | "import";
 
-export function TripsList({ trips }: { trips: TripEntry[] }) {
+export function TripsList({
+  trips,
+  demoMode,
+}: {
+  trips: TripEntry[];
+  demoMode?: boolean;
+}) {
   const [openForm, setOpenForm] = useState<OpenForm>("none");
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -138,7 +145,7 @@ export function TripsList({ trips }: { trips: TripEntry[] }) {
       )}
 
       {openForm === "none" && (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className={clsx("grid grid-cols-1 gap-2", !demoMode && "sm:grid-cols-2")}>
           <button
             type="button"
             onClick={() => setOpenForm("create")}
@@ -146,13 +153,15 @@ export function TripsList({ trips }: { trips: TripEntry[] }) {
           >
             <Plus className="h-4 w-4" /> Neue Reise
           </button>
-          <button
-            type="button"
-            onClick={() => setOpenForm("import")}
-            className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-zinc-300 py-3 text-sm font-medium text-zinc-600 transition-colors hover:border-teal-400 hover:text-teal-700 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-teal-700 dark:hover:text-teal-300"
-          >
-            <Upload className="h-4 w-4" /> Aus Polarsteps importieren
-          </button>
+          {!demoMode && (
+            <button
+              type="button"
+              onClick={() => setOpenForm("import")}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-zinc-300 py-3 text-sm font-medium text-zinc-600 transition-colors hover:border-teal-400 hover:text-teal-700 dark:border-zinc-700 dark:text-zinc-400 dark:hover:border-teal-700 dark:hover:text-teal-300"
+            >
+              <Upload className="h-4 w-4" /> Aus Polarsteps importieren
+            </button>
+          )}
         </div>
       )}
 

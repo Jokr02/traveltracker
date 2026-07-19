@@ -125,3 +125,11 @@ model LoginAttempt {
 
   @@index([ip, createdAt])
 }
+
+// Steuert den periodischen Reset der Demo-Daten (siehe src/lib/demo/reset.ts).
+// Existiert per Schema auch in der echten DB, wird dort aber nie verwendet —
+// nur die Demo-DB (DEMO_DATABASE_URL) hat eine befüllte Zeile.
+model DemoState {
+  id          String   @id @default("singleton")
+  lastResetAt DateTime @default(now())
+}

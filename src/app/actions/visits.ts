@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { requireAuth } from "@/lib/session";
 import { visitFormSchema } from "@/lib/validation";
 import type { TransportMode } from "@/generated/prisma/client";
@@ -35,6 +35,7 @@ export async function createVisit(
   formData: FormData,
 ): Promise<VisitFormState> {
   await requireAuth();
+  const { db } = await getDb();
 
   const parsed = parseVisitForm(formData);
   if (!parsed.success) {
@@ -52,7 +53,7 @@ export async function createVisit(
   const { startDate, endDate, notes, rating, coverImageUrl, transportModes, tripId } =
     parsed.data;
 
-  await prisma.visit.create({
+  await db.visit.create({
     data: {
       countryId,
       startDate: new Date(startDate),
@@ -76,6 +77,7 @@ export async function updateVisit(
   formData: FormData,
 ): Promise<VisitFormState> {
   await requireAuth();
+  const { db } = await getDb();
 
   const parsed = parseVisitForm(formData);
   if (!parsed.success) {
@@ -93,7 +95,7 @@ export async function updateVisit(
   const { startDate, endDate, notes, rating, coverImageUrl, transportModes, tripId } =
     parsed.data;
 
-  await prisma.visit.update({
+  await db.visit.update({
     where: { id: visitId },
     data: {
       startDate: new Date(startDate),
@@ -112,6 +114,7 @@ export async function updateVisit(
 
 export async function deleteVisit(visitId: string, countryId: string) {
   await requireAuth();
-  await prisma.visit.delete({ where: { id: visitId } });
+  const { db } = await getDb();
+  await db.visit.delete({ where: { id: visitId } });
   revalidateCountryViews(countryId);
 }

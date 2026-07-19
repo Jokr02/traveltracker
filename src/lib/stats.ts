@@ -1,12 +1,13 @@
 import "server-only";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 import { haversineKm } from "@/lib/geo";
 
 const POPULATED_CONTINENTS = ["Afrika", "Amerika", "Asien", "Europa", "Ozeanien"];
 const NORDIC_CCA3 = ["DNK", "SWE", "NOR", "FIN", "ISL"];
 
 export async function getStats() {
-  const countries = await prisma.country.findMany({
+  const { db } = await getDb();
+  const countries = await db.country.findMany({
     include: { visits: { orderBy: { startDate: "asc" } } },
   });
 

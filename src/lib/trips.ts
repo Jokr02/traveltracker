@@ -1,8 +1,9 @@
 import "server-only";
-import { prisma } from "@/lib/prisma";
+import { getDb } from "@/lib/db";
 
 export async function getAllTrips() {
-  return prisma.trip.findMany({
+  const { db } = await getDb();
+  return db.trip.findMany({
     include: {
       visits: {
         include: { country: true },
@@ -14,7 +15,8 @@ export async function getAllTrips() {
 }
 
 export async function getTripById(id: string) {
-  return prisma.trip.findUnique({
+  const { db } = await getDb();
+  return db.trip.findUnique({
     where: { id },
     include: {
       visits: {
